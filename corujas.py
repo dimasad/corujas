@@ -16,7 +16,7 @@ class SymbolicModel(base.SymbolicModel):
     y = ['x_meas', 'y_meas', 'z_meas']
     '''Measurement vector.'''
     
-    p = []
+    p = ['x_meas_std', 'y_meas_std', 'z_meas_std']
     '''Parameter vector.'''
     
     s = []
@@ -45,17 +45,12 @@ class SymbolicModel(base.SymbolicModel):
         a = attrdict.AttrDict(
             self.unpack_arguments(t=t, x=x, y=y, p=p, s=s, c=c)
         )
-        return (symstats.normal_logpdf(a.x_meas, a.x, 1) +
-                symstats.normal_logpdf(a.y_meas, a.y, 1) +
-                symstats.normal_logpdf(a.z_meas, a.z, 1))
+        return (symstats.normal_logpdf(a.x_meas, a.x, a.x_meas_std) +
+                symstats.normal_logpdf(a.y_meas, a.y, a.y_meas_std) +
+                symstats.normal_logpdf(a.z_meas, a.z, a.z_meas_std))
     
     def prior_logpdf(self, x, p, c):
         return 0
-
-
-def generated_src():
-    model_generator = base.ModelGenerator(SymbolicModel(), 'GeneratedModel')
-    return model_generator.generate()
 
 
 def generated_src():
@@ -104,6 +99,12 @@ def given_params():
     return {}
 
 
+def param_guess():
+    return {
+        'x_meas_std': 0.5, 'y_meas_std': 0.5, 'z_meas_std': 0.5, 
+    }
+
+
 def estim_problem(tmeas, y, model, col_order, meas_subdivide):
     yind = meas_subdivide * np.arange(tmeas.size)
     test = np.linspace(
@@ -132,10 +133,12 @@ def main():
     tmeas, y_dict = load_data('20140528AC1301FREE01.bin', np.s_[158977:162202])
 
     splines = spline_fit(tmeas, y_dict, 4)
-    params = given_params()
+    params = {}
+    params.update(given_params())
+    params.update(param_guess())
     
     G = np.zeros((GeneratedModel.nx, 3))
-    G[-3:] = np.eye(3) * [1, 1, 1]
+    G[-3:] = np.eye(3) * [50, 50, 50]
     c = GeneratedModel.pack_c(**params)
     p = GeneratedModel.pack_p(**params)
     y = GeneratedModel.pack_y(tmeas.shape, **y_dict)
@@ -145,7 +148,7 @@ def main():
     x_guess = pack_x_guess(splines, t_fine)
     z0 = problem.pack_decision(x_guess, None, p)
     
-    p_lb = dict()
+    p_lb = dict(x_meas_std=0, y_meas_std=0, z_meas_std=0)
     p_fix = dict()
     z_bounds = problem.pack_bounds(p_lb=p_lb, p_fix=p_fix)
     
