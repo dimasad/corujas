@@ -1,5 +1,3 @@
-import textwrap
-
 import attrdict
 import numpy as np
 import numpy.linalg
@@ -111,8 +109,8 @@ def unwrap_quaternion(q):
 
 def load_data(filepath, range_):
     data = io.loadmat(filepath)
-    tmeas = data['t'].flatten()[range_]
-    q = np.hstack([data['q0'], data['q1'], data['q2'], data['q3']])[range_]
+    tmeas = data['time'].flatten()[range_]
+    q = data['q'][range_]
     q_unwrapped = unwrap_quaternion(q)
     
     y_dict = dict(
@@ -144,7 +142,7 @@ def given_params():
 
 def param_guess():
     return {
-        'x_meas_std': 0.5, 'y_meas_std': 0.5, 'z_meas_std': 0.5, 
+        'x_meas_std': 0.2, 'y_meas_std': 0.2, 'z_meas_std': 0.2, 
         'q1_meas_std': 0.0005, 'q2_meas_std': 0.0005, 'q3_meas_std': 0.0005,
     }
 
@@ -194,7 +192,7 @@ def save_data(tmeas, y_dict, t_fine, xopt, filename):
 
 
 def main():
-    tmeas, y_dict = load_data('20140528AC1301FREE01.bin', np.s_[158977:162202])
+    tmeas, y_dict = load_data('datasmooth.bin', np.s_[:])
 
     splines = spline_fit(tmeas, y_dict, 4)
     params = {}
@@ -214,8 +212,11 @@ def main():
     
     p_lb = dict(x_meas_std=0, y_meas_std=0, z_meas_std=0,
                 q1_meas_std=0, q2_meas_std=0, q3_meas_std=0)
-    p_fix = dict(q1_meas_std=0.0005, q2_meas_std=0.0005, q3_meas_std=0.0005)
+    p_fix = dict(x_meas_std=0.2, y_meas_std=0.2, z_meas_std=0.2,
+                 q1_meas_std=0.0005, q2_meas_std=0.0005, q3_meas_std=0.0005)
     z_bounds = problem.pack_bounds(p_lb=p_lb, p_fix=p_fix)
+    z_bounds[:, 3:7] = [y_dict['q0_meas'][0], y_dict['q1_meas'][0],
+                        y_dict['q2_meas'][0],y_dict['q3_meas'][0]]
     
     nlp = problem.nlp(z_bounds)
     zopt, solinfo = nlp.solve(z0)
