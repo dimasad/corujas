@@ -112,8 +112,7 @@ GeneratedDTModel = sym2num.class_obj(sym_dt_model, printer)
 
 
 def load_data():
-    module_dir = os.path.dirname(__file__)
-    filepath = os.path.join(module_dir, 'data', 'trakstar.mat')
+    filepath = '20140520AC1301FREE01_PY_09.bin'
     interval = slice(95, 400)
     upsample = 4
     
@@ -135,7 +134,7 @@ def load_data():
 def pem(t, y):
     # Instantiate the model
     given = dict(
-        ang_meas_std=2.4e-4, angvel_png=3,
+        ang_meas_std=0.054*np.pi/180, angvel_png=3,
     )
     dt = t[1] - t[0]
     q0 = GeneratedDTModel.pack('q', given)
@@ -165,7 +164,7 @@ def pem(t, y):
     
     q_lb = dict(ang_meas_std=0, angvel_png=0)
     q_ub = dict()
-    q_fix = dict(ang_meas_std=2.4e-4)
+    q_fix = dict(ang_meas_std=given['ang_meas_std'])
     q_bounds = [model.pack('q', dict(q_lb, **q_fix), fill=-np.inf),
                 model.pack('q', dict(q_ub, **q_fix), fill=np.inf)]
     problem = yaipopt.Problem(q_bounds, merit, grad,

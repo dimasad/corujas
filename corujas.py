@@ -225,7 +225,7 @@ def main(argv):
     params.update(param_guess())
     
     G = np.zeros((GeneratedModel.nx, 6))
-    G[-6:] = np.eye(6) * [50, 50, 50, 5, 5, 5]
+    G[-6:] = np.eye(6) * [50, 50, 50, 2.71, 2.71, 2.71]
     c = GeneratedModel.pack_c(**params)
     p = GeneratedModel.pack_p(**params)
     y = GeneratedModel.pack_y(tmeas.shape, **y_dict)
